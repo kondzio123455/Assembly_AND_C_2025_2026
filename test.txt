@@ -1,0 +1,14 @@
+cd c:
+mkdir projects
+cd projects/
+git clone https://github.com/kondzio123455/Assembly_AND_C_2025_2026.git
+cd Assembly_And_C_2025_2026/
+ls
+mkdir PRACTICAL_01
+touch test.txt
+nano test.txt
+cd ..
+git add
+git commit -an "Practical 01"
+git push
+
