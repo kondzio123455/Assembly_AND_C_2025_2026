@@ -1,0 +1,29 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 14/01/2026 16:35:39
+
+00001000                             1      ORG     $1000       ;START CODE AT MEMORY LOCATION $1000
+00001000                             2      
+00001000                             3      START:
+00001000  123C 0064                  4      MOVE.B  #$64, D1    ;LOAD IMMEDIATE VALUE 100 IN DECIMEL INTO D1
+00001004  43F9 0000101A              5      LEA text,   A1      ;LOAD ADDRESS OF TEXT INTO A1
+0000100A  303C 000E                  6      MOVE    #14,    D0  ;LOAD IMMEDIATE VALUE 14 INTO D0
+0000100E  4E4F                       7      TRAP    #15         ;EXECUTE TRAP OUTPUT D0 TO CONSOLE
+00001010                             8      
+00001010  303C 0003                  9      MOVE #3, D0         ;LOAD IMMEDIATE VALUE 3 INTO D0
+00001014  4E4F                      10      TRAP #15            ;EXECUTE TRAP OUTPUT D0 TO CONSOLE
+00001016                            11      
+00001016  FFFF FFFF                 12      SIMHALT
+0000101A                            13      
+0000101A= 44 61 74 61 20 52 ...     14  text:   dc.b 'Data Register: ', 0
+0000102A                            15      END START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               1000
+TEXT                101A

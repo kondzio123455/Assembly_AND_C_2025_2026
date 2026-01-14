@@ -1,0 +1,37 @@
+00003000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 14/01/2026 16:35:50
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :Konrad skoczylas
+00000000                             3  *-----------------------------------------------------------
+00003000                             4      ORG    $3000
+00003000                             5  START:
+00003000                             6  
+00003000                             7      ; first instruction of program
+00003000  720F                       8      MOVE.L #%00001111, D1
+00003002                             9  
+00003002                            10      ; load immediate value into D1
+00003002  1401                      11      MOVE.B D1, D2
+00003004                            12  
+00003004                            13      ;copy byte from d1 to d2
+00003004  11C1 2000                 14      MOVE.B D1, $2000
+00003008                            15      
+00003008  1638 2000                 16      MOVE.B $2000, D3    
+0000300C                            17      ;load byte from memory location $2000 into d2
+0000300C                            18      
+0000300C  11F8 2000 3000            19      MOVE.B $2000, $3000 
+00003012                            20      ;copy byte from $2000 to memory location $3000
+00003012                            21      
+00003012  FFFF FFFF                 22      SIMHALT
+00003016                            23   
+00003016                            24      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               3000
