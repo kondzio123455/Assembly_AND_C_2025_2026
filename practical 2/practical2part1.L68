@@ -1,0 +1,36 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 19/01/2026 16:30:30
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000                             9  
+00001000  7004                      10      MOVE.L  #%100,  D0        ; Load binary 100 (4 decimal) into register D0
+00001002  223C 00000100             11      MOVE.L  #$100,  D1        ; Load hexadecimal 100 (256 decimal) into register D1
+00001008  7464                      12      MOVE.L  #100,   D2        ; Load decimal 100 into register D2
+0000100A                            13  
+0000100A  21C0 3000                 14      MOVE.L  D0, $3000         ; Store the value of D0 (4) as a LONG (4 bytes) at memory address $3000
+0000100E  21C1 3010                 15      MOVE.L  D1, $3010         ; Store the value of D1 (256) as a LONG at memory address $3010
+00001012  21C2 3020                 16      MOVE.L  D2, $3020         ; Store the value of D2 (100) as a LONG at memory address $3020
+00001016                            17      
+00001016                            18  
+00001016  FFFF FFFF                 19      SIMHALT             ; halt simulator
+0000101A                            20  
+0000101A                            21  * Put variables and constants here
+0000101A                            22  
+0000101A                            23      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               1000

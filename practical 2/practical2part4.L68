@@ -1,0 +1,59 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 19/01/2026 16:27:36
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000  7007                       9      MOVE.L  #%111,  D0        ; Load binary 111 (7 decimal) into D0
+00001002  223C 00000912             10      MOVE.L  #$912,  D1        ; Load hexadecimal 912 (2322 decimal) into D1
+00001008  243C 00000137             11      MOVE.L  #311,   D2        ; Load decimal 311 into D2
+0000100E                            12  
+0000100E  21C2 4200                 13      MOVE.L  D2,     $4200     ; Store D2 (311) as a LONG (4 bytes) at memory $4200
+00001012  21C1 5000                 14      MOVE.L  D1,     $5000     ; Store D1 (2322) as LONG at memory $5000
+00001016  21C0 3090                 15      MOVE.L  D0,     $3090     ; Store D0 (7) as LONG at memory $3090
+0000101A                            16  
+0000101A  33FC 0137 00009000        17      MOVE.W  #311,   $9000     ; Store 311 as WORD (2 bytes) at $9000
+00001022  31FC 0912 1010            18      MOVE.W  #$912,  $1010     ; Store $912 (2322) as WORD at $1010
+00001028  31FC 0007 2016            19      MOVE.W  #%111,  $2016     ; Store 7 as WORD at $2016
+0000102E                            20  
+0000102E  11C0 1200                 21      MOVE.B  D0,     $1200     ; Store lower byte of D0 (7) at $1200
+00001032  13C1 00009010             22      MOVE.B  D1,     $9010     ; Store lower byte of D1 (0x912 ? 0x12) at $9010
+00001038  11C2 2020                 23      MOVE.B  D2,     $2020     ; Store lower byte of D2 (311 ? 0x37) at $2020
+0000103C                            24  
+0000103C  7007                      25      MOVE.L  #%111,  D0        ; Load 7 into D0
+0000103E  223C 00000912             26      MOVE.L  #$912,  D1        ; Load 2322 into D1
+00001044  243C 00000137             27      MOVE.L  #311,   D2        ; Load 311 into D2
+0000104A                            28  
+0000104A  31FC 0137 4020            29      MOVE.W  #311,   $4020     ; Store 311 as WORD at $4020
+00001050  31FC 0912 6010            30      MOVE.W  #$912,  $6010     ; Store 2322 as WORD at $6010
+00001056  31FC 0007 2005            31      MOVE.W  #%111,  $2005     ; Store 7 as WORD at $2005
+0000105C                            32  
+0000105C  11C1 3020                 33      MOVE.B  D1,     $3020     ; Store lower byte of D1 (0x12) at $3020
+00001060  11C3 3010                 34      MOVE.B  D3,     $3010     ; Store lower byte of D3 (whatever is in D3) at $3010
+00001064  11C1 3000                 35      MOVE.B  D1,     $3000     ; Store lower byte of D1 (0x12) at $3000
+00001068                            36  
+00001068                            37      
+00001068                            38      
+00001068                            39  
+00001068                            40  * Put program code here
+00001068                            41  
+00001068  FFFF FFFF                 42      SIMHALT             ; halt simulator
+0000106C                            43  
+0000106C                            44  * Put variables and constants here
+0000106C                            45  
+0000106C                            46      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               1000

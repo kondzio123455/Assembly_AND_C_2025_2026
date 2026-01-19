@@ -1,0 +1,43 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 19/01/2026 16:29:38
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000                             9  
+00001000                            10  * Put program code here
+00001000  7004                      11      MOVE.L  #%100,  D0        ; Load binary 100 (4 decimal) into D0
+00001002  223C 00000100             12      MOVE.L  #$100,  D1        ; Load hexadecimal 100 (256 decimal) into D1
+00001008  7464                      13      MOVE.L  #100,   D2        ; Load decimal 100 into D2
+0000100A                            14  
+0000100A  21C0 3000                 15      MOVE.L  D0,    $3000      ; Store D0 (4) as LONG (4 bytes) at memory $3000
+0000100E  21C1 3010                 16      MOVE.L  D1,    $3010      ; Store D1 (256) as LONG at memory $3010
+00001012  21C2 3020                 17      MOVE.L  D2,    $3020      ; Store D2 (100) as LONG at memory $3020
+00001016                            18  
+00001016  31FC 0064 3020            19      MOVE.W  #100,   $3020     ; Store 100 as WORD (2 bytes) at $3020, overwriting lower 16 bits of LONG
+0000101C  31FC 0100 3010            20      MOVE.W  #$100,  $3010     ; Store 256 as WORD at $3010, overwriting lower 16 bits of LONG
+00001022  31FC 0004 3000            21      MOVE.W  #%100,  $3000     ; Store 4 as WORD at $3000, overwriting lower 16 bits of LONG
+00001028                            22    
+00001028                            23                             ;it prevevents bugs from happening so the cpu knows exacly what location to use (0-255) or byte address/location , since memory only contains bytes 
+00001028                            24      
+00001028                            25  
+00001028  FFFF FFFF                 26      SIMHALT             ; halt simulator
+0000102C                            27  
+0000102C                            28  * Put variables and constants here
+0000102C                            29  
+0000102C                            30      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               1000

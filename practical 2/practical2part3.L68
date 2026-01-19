@@ -1,0 +1,44 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 19/01/2026 16:28:47
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000  7004                       9      MOVE.L  #%100,  D0        ; Load binary 100 (4 decimal) into D0
+00001002  223C 00000100             10      MOVE.L  #$100,  D1        ; Load hexadecimal 100 (256 decimal) into D1
+00001008  7464                      11      MOVE.L  #100,   D2        ; Load decimal 100 into D2
+0000100A                            12  
+0000100A  21C0 3000                 13      MOVE.L  D0,     $3000     ; Store D0 (4) as LONG (4 bytes) at memory $3000
+0000100E  21C1 3010                 14      MOVE.L  D1,     $3010     ; Store D1 (256) as LONG at memory $3010
+00001012  21C2 3020                 15      MOVE.L  D2,     $3020     ; Store D2 (100) as LONG at memory $3020
+00001016                            16  
+00001016  31FC 0064 3020            17      MOVE.W  #100,   $3020     ; Store 100 as WORD (2 bytes) at $3020 (overwrites lower 2 bytes)
+0000101C  31FC 0100 3010            18      MOVE.W  #$100,  $3010     ; Store 256 as WORD at $3010 (overwrites lower 2 bytes)
+00001022  31FC 0004 3000            19      MOVE.W  #%100,  $3000     ; Store 4 as WORD at $3000 (overwrites lower 2 bytes)
+00001028                            20  
+00001028  11FC 0064 3020            21      MOVE.B  #100,    $3020    ; Store 100 as BYTE (1 byte) at $3020 (overwrites lowest byte)
+0000102E  11FC 0064 3010            22      MOVE.B  #$64,   $3010     ; Store 0x64 (100 decimal) as BYTE at $3010 (overwrites lowest byte)
+00001034  11FC 008F 3000            23      MOVE.B  #%10001111, $3000 ; Store binary 10001111 (143 decimal) as BYTE at $3000
+0000103A                            24     ;the memory is only read in bytes 
+0000103A                            25  * Put program code here
+0000103A                            26  
+0000103A  FFFF FFFF                 27      SIMHALT             ; halt simulator
+0000103E                            28  
+0000103E                            29  * Put variables and constants here
+0000103E                            30  
+0000103E                            31      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               1000
