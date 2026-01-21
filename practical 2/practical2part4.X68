@@ -30,9 +30,10 @@ START:                  ; first instruction of program
     MOVE.W  #$912,  $6010     ; Store 2322 as WORD at $6010
     MOVE.W  #%111,  $2005     ; Store 7 as WORD at $2005
 
-    MOVE.B  D1,     $3020     ; Store lower byte of D1 (0x12) at $3020
-    MOVE.B  D3,     $3010     ; Store lower byte of D3 (whatever is in D3) at $3010
-    MOVE.B  D1,     $3000     ; Store lower byte of D1 (0x12) at $3000
+    MOVE.B  #42, $1020
+    MOVE.L  #280, $1070
+    LEA     $1070, A4
+    MOVE.L  (A4), $5252
 
     
     
@@ -51,3 +52,4 @@ START:                  ; first instruction of program
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
