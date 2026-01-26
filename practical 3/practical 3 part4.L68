@@ -1,0 +1,65 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 26/01/2026 16:30:57
+
+00001000                             1          ORG     $1000              ; program starts at memory address $1000
+00001000                             2  START:                             ; entry point
+00001000                             3  
+00001000                             4  
+00001000  41F9 0000105E              5          LEA     PLAYER_HEALTH, A0  ; load address of PLAYER_HEALTH into A0
+00001006  10BC 0064                  6          MOVE.B  #$64, (A0)         ; store 100% health in memory
+0000100A  0410 0014                  7          SUB.B   #20, (A0)          ; subtract 20 from player health
+0000100E                             8  
+0000100E  43F9 00001060              9          LEA     PLAYER_POINTS, A1  ; load address of PLAYER_POINTS into A1
+00001014  32BC 0020                 10          MOVE.W  #32, (A1)           ; set player points to 50
+00001018  0651 000E                 11          ADD.W   #14, (A1)           ; add 20 points
+0000101C                            12  
+0000101C  45F9 00001062             13          LEA     PLAYER_X, A2       ; load address of PLAYER_X into A2
+00001022  14BC 0010                 14          MOVE.B  #$10, (A2)         ; set player X position to 16
+00001026                            15  
+00001026  47F9 00001063             16          LEA     PLAYER_Y, A3       ; load address of PLAYER_Y into A3
+0000102C  16BC 0008                 17          MOVE.B  #$08, (A3)         ; set player Y position to 8
+00001030                            18  
+00001030  49F9 00001064             19          LEA     BOSS_HP, A4        ; load address of BOSS_HP into A4
+00001036  28BC 00006400             20          MOVE.L  #$00006400, (A4)   ; set boss health to 25600
+0000103C  0494 00001000             21          SUB.L   #$00001000, (A4)   ; reduce boss health by 4096
+00001042                            22  
+00001042  4BF9 00001068             23          LEA     BOSS_X, A5         ; load address of BOSS_X into A5
+00001048  3ABC 0120                 24          MOVE.W  #$0120, (A5)       ; set boss X position to 288
+0000104C                            25  
+0000104C  4DF9 0000106A             26          LEA     BOSS_Y, A6         ; load address of BOSS_Y into A6
+00001052  3CBC 00F0                 27          MOVE.W  #$00F0, (A6)       ; set boss Y position to 240
+00001056                            28  
+00001056                            29  
+00001056  1012                      30          MOVE.B  (A2), D0           ; copy PLAYER_X value into D0
+00001058  1680                      31          MOVE.B  D0, (A3)           ; store D0 value into PLAYER_Y
+0000105A                            32  
+0000105A  FFFF FFFF                 33          SIMHALT                    ; stop simulator execution
+0000105E                            34  
+0000105E                            35  
+0000105E= 00                        36  PLAYER_HEALTH   dc.b    $00        ; 1 byte for player health
+00001060= 0000                      37  PLAYER_POINTS   dc.w    $0000      ; 2 bytes for player points
+00001062= 00                        38  PLAYER_X        dc.b    $00        ; 1 byte for player X position
+00001063= 00                        39  PLAYER_Y        dc.b    $00        ; 1 byte for player Y position
+00001064                            40  
+00001064= 00000000                  41  BOSS_HP         dc.l    $00000000  ; 4 bytes for boss health
+00001068= 0000                      42  BOSS_X          dc.w    $0000      ; 2 bytes for boss X position
+0000106A= 0000                      43  BOSS_Y          dc.w    $0000      ; 2 bytes for boss Y position
+0000106C                            44  
+0000106C                            45          END     START              ; end of program
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BOSS_HP             1064
+BOSS_X              1068
+BOSS_Y              106A
+PLAYER_HEALTH       105E
+PLAYER_POINTS       1060
+PLAYER_X            1062
+PLAYER_Y            1063
+START               1000

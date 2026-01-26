@@ -1,0 +1,51 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 26/01/2026 15:32:46
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000                             9  
+00001000                            10  * Put program code here
+00001000  227C 0000101C             11      MOVEA.L #ACHIEVEMENT_POINTS,    A1
+00001006  7000                      12      MOVE.L  #0, D0
+00001008                            13      
+00001008  2419                      14      MOVE.L  (A1)+,  D2
+0000100A  D082                      15      ADD.L   D2, D0
+0000100C                            16      
+0000100C  2419                      17      MOVE.L  (A1)+,  D2
+0000100E  D082                      18      ADD.L   D2, D0
+00001010                            19      
+00001010  2419                      20      MOVE.L  (A1)+,  D2
+00001012  D082                      21      ADD.L   D2, D0
+00001014                            22      
+00001014  2419                      23      MOVE.L  (A1)+,  D2
+00001016  D082                      24      ADD.L   D2, D0
+00001018                            25      
+00001018  2419                      26      MOVE.L  (A1)+,  D2
+0000101A  D082                      27      ADD.L   D2, D0
+0000101C                            28      
+0000101C= 00000005 0000000A ...     29  ACHIEVEMENT_POINTS: DC.L    5,  10, 15, 20, 30
+00001030                            30      
+00001030                            31      
+00001030                            32  
+00001030  FFFF FFFF                 33      SIMHALT             ; halt simulator
+00001034                            34  
+00001034                            35  * Put variables and constants here
+00001034                            36  
+00001034                            37      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ACHIEVEMENT_POINTS  101C
+START               1000
