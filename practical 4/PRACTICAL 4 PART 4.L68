@@ -1,0 +1,57 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 04/02/2026 16:14:48
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000  43F9 00001032              9      LEA HEALTH,    A1
+00001006  12BC 0064                 10      MOVE.B  #$64, (A1)
+0000100A  0411 0014                 11      SUB.B   #20,  (A1)
+0000100E                            12      
+0000100E  6000 0006                 13      BRA OPENING_MYSTERY_BOX
+00001012  6100 000E                 14      BSR MSG_AWARDS
+00001016                            15      
+00001016                            16  OPENING_MYSTERY_BOX:   ;player either gets 1 or 0
+00001016                            17                         ;1 = getting power up , 0 = losing health      
+00001016  45F9 00001036             18      LEA BOX_RANDOM, A2
+0000101C  5212                      19      ADD.B   #1, (A2)
+0000101E  0611 000A                 20      ADD.B   #10, (A1)
+00001022                            21      
+00001022                            22  MSG_AWARDS:
+00001022  41F9 00001037             23      LEA MSG_AWARD, A0
+00001028  103C 000C                 24      MOVE.B  #12,    D0
+0000102C  4E4F                      25      TRAP    #15
+0000102E                            26      
+0000102E                            27  * Put program code here
+0000102E                            28  
+0000102E  FFFF FFFF                 29      SIMHALT             ; halt simulator
+00001032                            30  
+00001032                            31  * Put variables and constants here
+00001032= 00000064                  32  HEALTH              dc.l    $64
+00001036= 00                        33  BOX_RANDOM          dc.b    $0
+00001037= 59 4F 55 20 48 41 ...     34  MSG_AWARD           dc.b 'YOU HAVE RECEIVED +10 HEALTH'
+00001054= 0000                      35  TAKING_DAMAGE       dc.w    $0
+00001056= 00000000                  36  ENEMIES_HEALTH      dc.l    $0
+0000105A                            37      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BOX_RANDOM          1036
+ENEMIES_HEALTH      1056
+HEALTH              1032
+MSG_AWARD           1037
+MSG_AWARDS          1022
+OPENING_MYSTERY_BOX  1016
+START               1000
+TAKING_DAMAGE       1054
