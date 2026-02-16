@@ -1,0 +1,76 @@
+00001008 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 2/16/2026 8:08:53 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :Konrad Skoczylas
+00000000                             3  * Date       :2/16/26
+00000000                             4  * Description:a game like jetpack joyride current idea but made alot more simpler 
+00000000                             5  *-----------------------------------------------------------
+00001000                             6      ORG    $1000                  ; first instruction of program
+00001000= 0064                       7  PLAYER_Y    DC.W    100 ;STARTING Y POSTITON                                                ;VARAIBLESSSSSSSS
+00001002= 0000                       8  VELOCITY_Y  DC.W    0   ;VERTICVAL SPEED
+00001004= 0001                       9  GRAVITY     DC.W    1   ;GRAVITY DIRECTION 1 = DOWN -1 = UP
+00001006= 0064                      10  POWER       DC.W    100 ;
+00001008                            11  
+00001008  =00000000                 12  TOP_OF_SCREEN   EQU 0                           ;CONSTANTS/FINALS
+00001008  =000000C8                 13  BOTTOM_OF_SCREEN    EQU 200
+00001008                            14  
+00001008                            15  START:
+00001008                            16  GAMELOOP:
+Line 17 ERROR: Undefined symbol
+00001008  4EB9 004DBD16             17      JSR READINPUT
+0000100E  4EB9 0000101C             18      JSR PHYSICS
+Line 19 ERROR: Undefined symbol
+00001014  4EB9 004DBD16             19      JSR DRAWPLAYER
+0000101A  60EC                      20      BRA GAMELOOP
+0000101C                            21      
+0000101C                            22  PHYSICS:
+0000101C  3038 1002                 23      MOVE.W  VELOCITY_Y, D0
+00001020  D078 1004                 24      ADD.W   GRAVITY,    D0
+00001024  31C0 1000                 25      MOVE.W  D0, PLAYER_Y
+00001028                            26      
+00001028  3038 1000                 27      MOVE.W  PLAYER_Y,   D0
+0000102C  D078 1002                 28      ADD.W   VELOCITY_Y, D0
+00001030  31C0 1000                 29      MOVE.W  D0, PLAYER_Y
+00001034                            30      
+Line 31 ERROR: Invalid addressing mode
+00001034                            31      CMP.W   PLAYER_Y,   #0
+00001034  6C00 0008                 32      BGE INSIDE_TOP
+00001038  31FC 0000 1000            33      MOVE.W  #0, PLAYER_Y
+0000103E                            34  
+0000103E                            35  INSIDE_TOP:
+Line 36 ERROR: Invalid addressing mode
+0000103E                            36      CMP.W   PLAYER_Y,   #200
+0000103E  6F00 0008                 37      BLE INSIDE_BOTTOM
+00001042  31FC 00C8 1000            38      MOVE.W  #200,   PLAYER_Y
+00001048                            39      
+00001048                            40  INSIDE_BOTTOM:
+00001048                            41  
+00001048  4E75                      42      RTS
+0000104A                            43  * Put program code here
+0000104A                            44  
+0000104A  FFFF FFFF                 45      SIMHALT             ; halt simulator
+0000104E                            46  
+0000104E                            47  * Put variables and constants here
+0000104E                            48  
+0000104E                            49      END    START        ; last line of source
+
+4 errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BOTTOM_OF_SCREEN    C8
+GAMELOOP            1008
+GRAVITY             1004
+INSIDE_BOTTOM       1048
+INSIDE_TOP          103E
+PHYSICS             101C
+PLAYER_Y            1000
+POWER               1006
+START               1008
+TOP_OF_SCREEN       0
+VELOCITY_Y          1002
