@@ -1,0 +1,69 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 05/03/2026 09:54:19
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000  2F3C 0000104E              9      MOVE.L  #HEALTH,    -(SP)
+00001006  103C 000E                 10      MOVE.B  #14, D0
+0000100A  123C 000E                 11      MOVE.B  #14, D1
+0000100E                            12      
+0000100E                            13      
+0000100E  2F00                      14      MOVE.L  D0, -(SP)
+00001010  2F01                      15      MOVE.L  D1, -(SP)
+00001012                            16      
+00001012  4EB9 00001020             17      JSR GAME_LOOP
+00001018  6100 0022                 18      BSR HEADS_UP_DISPLAY
+0000101C  6000 002C                 19      BRA END_GAME
+00001020                            20      
+00001020                            21      GAME_LOOP:
+00001020                            22      
+00001020  222F 0004                 23      MOVE.L  4(SP),  D1
+00001024  202F 0008                 24      MOVE.L  8(SP),  D0
+00001028                            25      
+00001028  B240                      26      CMP D0, D1
+0000102A  6700 0006                 27      BEQ DAMAGE
+0000102E  6000 000A                 28      BRA NO_DAMAGE
+00001032                            29      
+00001032                            30      DAMAGE:
+00001032  226F 000C                 31      MOVEA.L 12(SP), A1
+00001036  0411 000A                 32      SUB.B   #10,    (A1)
+0000103A                            33      NO_DAMAGE:
+0000103A  4E75                      34      RTS
+0000103C                            35      
+0000103C                            36      HEADS_UP_DISPLAY:
+0000103C  1239 0000104E             37      MOVE.B   HEALTH,D1
+00001042  103C 0003                 38      MOVE.B  #3, D0
+00001046  4E4F                      39      TRAP    #15
+00001048  4E75                      40      RTS
+0000104A                            41      
+0000104A                            42      END_GAME:
+0000104A                            43      
+0000104A                            44  * Put program code here
+0000104A                            45  
+0000104A  FFFF FFFF                 46      SIMHALT             ; halt simulator
+0000104E= 64                        47      HEALTH: DC.B 100
+0000104F                            48  * Put variables and constants here
+0000104F                            49  
+0000104F                            50      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+DAMAGE              1032
+END_GAME            104A
+GAME_LOOP           1020
+HEADS_UP_DISPLAY    103C
+HEALTH              104E
+NO_DAMAGE           103A
+START               1000
