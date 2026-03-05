@@ -1,0 +1,758 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 3/5/2026 8:19:54 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * name     : konrad skoczylas  date: 2/29/26
+00000000                             3  * description : the quantum quest
+00000000                             4  *-----------------------------------------------------------
+00001000                             5              ORG    $1000               * program starts at memory address $1000
+00001000  =00000000                  6  EXIT        EQU    0                   * player enters 0 to quit at the replay screen
+00001000  =0000000A                  7  BET_LOW     EQU    10                  * low bet option costs 10 plasma
+00001000  =00000019                  8  BET_MED     EQU    25                  * medium bet option costs 25 plasma
+00001000  =00000032                  9  BET_HIGH    EQU    50                  * high bet option costs 50 plasma
+00001000                            10  
+00001000                            11  * ---- memory map ----------------------------------------
+00001000                            12  * $4000 =     current shield level, ranges 0 to 100
+00001000                            13  * $4002 = PLASMA     current plasma level, ranges 0 to 100
+00001000                            14  * $4004 = DARK MATTER  current dark matter level, ranges 0 to 100
+00001000                            15  * $4006 = DAY        tracks how many days the player has survived
+00001000                            16  * $4008 = SEED       holds the last value produced by the rng for the next call
+00001000                            17  * $400A = BET        temporarily holds the current bet amount during the gamble routine
+00001000                            18  * $400C = WINS       running total of gamble wins
+00001000                            19  * $400E = LOSSES     running total of gamble losses
+00001000                            20  *-----------------------------------------------------------
+00001000                            21  * INIT - set starting values for all resources and counters
+00001000                            22  *-----------------------------------------------------------
+00001000                            23  START:
+00001000  31FC 0064 4000            24              MOVE.W  #100,$4000          * shields begin full at 100
+00001006  31FC 003C 4002            25              MOVE.W  #60,$4002           * plasma starts at 60
+0000100C  31FC 003C 4004            26              MOVE.W  #60,$4004           * dark matter starts at 60
+00001012  31FC 0001 4006            27              MOVE.W  #1,$4006            * day counter starts at 1
+00001018  31FC 001D 4008            28              MOVE.W  #29,$4008           * initial seed value for the random number generator
+0000101E  31FC 0000 400A            29              MOVE.W  #0,$400A            * bet amount cleared to zero
+00001024  31FC 0000 400C            30              MOVE.W  #0,$400C            * win counter starts at zero
+0000102A  31FC 0000 400E            31              MOVE.W  #0,$400E            * loss counter starts at zero
+00001030  6100 24F2                 32              BSR     CLEAR_SCREEN        * clear the screen before showing the title
+00001034  6100 1FCE                 33              BSR     WELCOME             * show the title and wait for input
+00001038  6100 1FE8                 34              BSR     GAMELOOP            * enter the main game loop
+0000103C                            35  
+0000103C                            36  *-------------------------------------------------------
+0000103C                            37  * ORG - remaining program code placed from $3000 onwards
+0000103C                            38  *-------------------------------------------------------
+00003000                            39              ORG     $3000
+00003000                            40  
+00003000                            41  END:
+00003000  FFFF FFFF                 42              SIMHALT                     * end of program
+00003004                            43  
+00003004                            44  *-----------------------------------------------------------
+00003004                            45  * WELCOME - displays the title screen and waits for a keypress
+00003004                            46  *-----------------------------------------------------------
+00003004                            47  WELCOME:
+00003004  43F9 00003564             48              LEA     WELCOME_ART,A1      * load address of the title banner
+0000300A  103C 000E                 49              MOVE.B  #14,D0
+0000300E  4E4F                      50              TRAP    #15                 * print the title banner
+00003010  43F9 0000377A             51              LEA     SCIENTIST_ART,A1    * load address of the scientist portrait
+00003016  103C 000E                 52              MOVE.B  #14,D0
+0000301A  4E4F                      53              TRAP    #15                 * print the portrait
+0000301C  6100 04DC                 54              BSR     CONTINUE            * wait for the player to press a key
+00003020  4E75                      55              RTS
+00003022                            56  
+00003022                            57  *-----------------------------------------------------------
+00003022                            58  * GAMELOOP - main game loop, runs once per turn
+00003022                            59  * order: show hud, get input, run action,
+00003022                            60  *        pause, random event, pause, check for death, replay prompt
+00003022                            61  *-----------------------------------------------------------
+00003022                            62  GAMELOOP:
+00003022  6100 0500                 63              BSR     CLEAR_SCREEN        * clear screen at the start of each turn
+00003026  6100 0304                 64              BSR     HUD                 * display current resource values
+0000302A  6100 002C                 65              BSR     INPUT               * show the action menu and read the player choice
+0000302E  6100 04F4                 66              BSR     CLEAR_SCREEN        * clear before showing the action result
+00003032  6100 0068                 67              BSR     UPDATE              * run whichever action the player chose
+00003036  6100 04C2                 68              BSR     CONTINUE            * pause so the player can read the result
+0000303A  6100 04E8                 69              BSR     CLEAR_SCREEN        * clear before the random event
+0000303E  6100 021E                 70              BSR     GAMEPLAY            * roll a random event and apply daily decay
+00003042  6100 04B6                 71              BSR     CONTINUE            * pause so the player can read the event
+00003046  6100 04DC                 72              BSR     CLEAR_SCREEN        * clear before showing the updated hud
+0000304A  6100 02E0                 73              BSR     HUD                 * show updated resource values after all changes
+0000304E  6100 03FE                 74              BSR     CHECKDEAD           * check if any resource has reached zero
+00003052  6100 0456                 75              BSR     REPLAY              * ask the player to continue or quit
+00003056  4E75                      76              RTS                         * not reached, replay branches back to gameloop
+00003058                            77  
+00003058                            78  *-----------------------------------------------------------
+00003058                            79  * INPUT - displays the action menu and reads a valid choice
+00003058                            80  * loops until the player enters 1, 2, or 3
+00003058                            81  * stores the result in MCHOICE for UPDATE to read
+00003058                            82  *-----------------------------------------------------------
+00003058                            83  INPUT:
+00003058  43F9 00003985             84              LEA     MENU_MSG,A1         * print the action menu
+0000305E  103C 000E                 85              MOVE.B  #14,D0
+00003062  4E4F                      86              TRAP    #15
+00003064  43F9 00003A8C             87  INLOOP:     LEA     PROMPT_MSG,A1       * print the input prompt
+0000306A  103C 000E                 88              MOVE.B  #14,D0
+0000306E  4E4F                      89              TRAP    #15
+00003070  103C 0004                 90              MOVE.B  #4,D0              * trap 4 reads an integer from the keyboard into D1
+00003074  4E4F                      91              TRAP    #15
+00003076  B27C 0001                 92              CMP     #1,D1               * check if input is below the valid range
+0000307A  6D00 0012                 93              BLT     BADINP              * if so, reject it
+0000307E  B27C 0003                 94              CMP     #3,D1               * check if input is above the valid range
+00003082  6E00 000A                 95              BGT     BADINP              * if so, reject it
+00003086  33C1 00003530             96              MOVE.W  D1,MCHOICE          * input is valid, save it to memory
+0000308C  4E75                      97              RTS
+0000308E  43F9 00003AA3             98  BADINP:     LEA     BADINPUT_MSG,A1     * print an error message
+00003094  103C 000E                 99              MOVE.B  #14,D0
+00003098  4E4F                     100              TRAP    #15
+0000309A  60C8                     101              BRA     INLOOP              * ask again
+0000309C                           102  
+0000309C                           103  *-----------------------------------------------------------
+0000309C                           104  * UPDATE - reads MCHOICE and branches to the chosen action
+0000309C                           105  *-----------------------------------------------------------
+0000309C                           106  UPDATE:
+0000309C  3039 00003530            107              MOVE.W  MCHOICE,D0          * load the stored player choice
+000030A2  B07C 0001                108              CMP     #1,D0
+000030A6  6700 000E                109              BEQ     EXP1                * 1 goes to the collider run
+000030AA  B07C 0002                110              CMP     #2,D0
+000030AE  6700 0044                111              BEQ     EXP3                * 2 goes to the dark matter raid
+000030B2  6000 007E                112              BRA     GAMBLE              * 3 goes to the gamble routine
+000030B6                           113  
+000030B6                           114  *-----------------------------------------------------------
+000030B6                           115  * EXP1 - COLLIDER RUN
+000030B6                           116  * gains: +20 plasma, +15 dark matter
+000030B6                           117  * risk: 50% chance of taking 25 shield damage
+000030B6                           118  *-----------------------------------------------------------
+000030B6  43F9 00003ACE            119  EXP1:       LEA     ART1,A1             * print the collider art
+000030BC  103C 000E                120              MOVE.B  #14,D0
+000030C0  4E4F                     121              TRAP    #15
+000030C2  43F9 00004192            122              LEA     M1_RES,A1           * print the result message
+000030C8  103C 000E                123              MOVE.B  #14,D0
+000030CC  4E4F                     124              TRAP    #15
+000030CE  3038 4002                125              MOVE.W  $4002,D0            * load current plasma
+000030D2  0640 0014                126              ADD.W   #20,D0              * add the plasma reward
+000030D6  6100 03F0                127              BSR     CAP                 * clamp to 100 max
+000030DA  31C0 4002                128              MOVE.W  D0,$4002            * save updated plasma
+000030DE  3038 4004                129              MOVE.W  $4004,D0            * load current dark matter
+000030E2  0640 000F                130              ADD.W   #15,D0              * add the dark matter reward
+000030E6  6100 03E0                131              BSR     CAP                 * clamp to 100 max
+000030EA  31C0 4004                132              MOVE.W  D0,$4004            * save updated dark matter
+000030EE  6100 0326                133              BSR     COLLISION           * roll for possible shield damage
+000030F2  4E75                     134              RTS
+000030F4                           135  
+000030F4                           136  *-----------------------------------------------------------
+000030F4                           137  * EXP3 - DARK MATTER RAID
+000030F4                           138  * gains: +30 dark matter, +20 plasma
+000030F4                           139  * risk: 50% chance of taking 25 shield damage
+000030F4                           140  *-----------------------------------------------------------
+000030F4  43F9 00003C15            141  EXP3:       LEA     ART3,A1             * print the void raid art
+000030FA  103C 000E                142              MOVE.B  #14,D0
+000030FE  4E4F                     143              TRAP    #15
+00003100  43F9 000041C0            144              LEA     M3_RES,A1           * print the result message
+00003106  103C 000E                145              MOVE.B  #14,D0
+0000310A  4E4F                     146              TRAP    #15
+0000310C  3038 4004                147              MOVE.W  $4004,D0            * load current dark matter
+00003110  0640 001E                148              ADD.W   #30,D0              * add the dark matter reward
+00003114  6100 03B2                149              BSR     CAP                 * clamp to 100 max
+00003118  31C0 4004                150              MOVE.W  D0,$4004            * save updated dark matter
+0000311C  3038 4002                151              MOVE.W  $4002,D0            * load current plasma
+00003120  0640 0014                152              ADD.W   #20,D0              * add the plasma reward
+00003124  6100 03A2                153              BSR     CAP                 * clamp to 100 max
+00003128  31C0 4002                154              MOVE.W  D0,$4002            * save updated plasma
+0000312C  6100 02E8                155              BSR     COLLISION           * roll for possible shield damage
+00003130  4E75                     156              RTS
+00003132                           157  
+00003132                           158  *-----------------------------------------------------------
+00003132                           159  * GAMBLE - betting mini-game using plasma as currency
+00003132                           160  * player selects a bet size: 10, 25, or 50 plasma
+00003132                           161  * a random roll determines win or loss
+00003132                           162  * win returns double the bet, loss forfeits the bet
+00003132                           163  * results are tracked in the win and loss counters
+00003132                           164  *-----------------------------------------------------------
+00003132  6100 03F0                165  GAMBLE:     BSR     CLEAR_SCREEN        * clear screen for the gamble menu
+00003136  43F9 00003D1B            166              LEA     ART5,A1             * print the gamble art
+0000313C  103C 000E                167              MOVE.B  #14,D0
+00003140  4E4F                     168              TRAP    #15
+00003142  43F9 00003FC3            169              LEA     BET_MSG,A1          * print the bet options
+00003148  103C 000E                170              MOVE.B  #14,D0
+0000314C  4E4F                     171              TRAP    #15
+0000314E  43F9 000040CF            172  BETLOOP:    LEA     BETPROMPT,A1        * print the bet input prompt
+00003154  103C 000E                173              MOVE.B  #14,D0
+00003158  4E4F                     174              TRAP    #15
+0000315A  103C 0004                175              MOVE.B  #4,D0              * read the bet choice into D1
+0000315E  4E4F                     176              TRAP    #15
+00003160  B27C 0001                177              CMP     #1,D1               * check for low bet
+00003164  6700 0020                178              BEQ     BETLO
+00003168  B27C 0002                179              CMP     #2,D1               * check for medium bet
+0000316C  6700 0034                180              BEQ     BETMD
+00003170  B27C 0003                181              CMP     #3,D1               * check for high bet
+00003174  6700 0048                182              BEQ     BETHI
+00003178  43F9 00003AA3            183              LEA     BADINPUT_MSG,A1     * input was not 1, 2, or 3
+0000317E  103C 000E                184              MOVE.B  #14,D0
+00003182  4E4F                     185              TRAP    #15
+00003184  60C8                     186              BRA     BETLOOP             * ask again
+00003186                           187  
+00003186                           188  * --- low bet: 10 plasma ---
+00003186  3038 4002                189  BETLO:      MOVE.W  $4002,D0            * load current plasma
+0000318A  B07C 000A                190              CMP     #10,D0              * check if the player has at least 10
+0000318E  6C00 0008                191              BGE     BLO_OK              * enough plasma, proceed
+00003192  6100 00BC                192              BSR     NOBETS              * not enough, print message
+00003196  60B6                     193              BRA     BETLOOP             * return to bet selection
+00003198  31FC 000A 400A           194  BLO_OK:     MOVE.W  #10,$400A           * store bet amount as 10
+0000319E  6000 0038                195              BRA     BETPLACE
+000031A2                           196  
+000031A2                           197  * --- medium bet: 25 plasma ---
+000031A2  3038 4002                198  BETMD:      MOVE.W  $4002,D0            * load current plasma
+000031A6  B07C 0019                199              CMP     #25,D0              * check if the player has at least 25
+000031AA  6C00 0008                200              BGE     BMD_OK
+000031AE  6100 00A0                201              BSR     NOBETS
+000031B2  609A                     202              BRA     BETLOOP
+000031B4  31FC 0019 400A           203  BMD_OK:     MOVE.W  #25,$400A           * store bet amount as 25
+000031BA  6000 001C                204              BRA     BETPLACE
+000031BE                           205  
+000031BE                           206  * --- high bet: 50 plasma ---
+000031BE  3038 4002                207  BETHI:      MOVE.W  $4002,D0            * load current plasma
+000031C2  B07C 0032                208              CMP     #50,D0              * check if the player has at least 50
+000031C6  6C00 000A                209              BGE     BHI_OK
+000031CA  6100 0084                210              BSR     NOBETS
+000031CE  6000 FF7E                211              BRA     BETLOOP
+000031D2  31FC 0032 400A           212  BHI_OK:     MOVE.W  #50,$400A           * store bet amount as 50
+000031D8                           213  
+000031D8                           214  * --- deduct the bet and resolve the outcome ---
+000031D8  3038 4002                215  BETPLACE:   MOVE.W  $4002,D0            * load current plasma
+000031DC  9078 400A                216              SUB.W   $400A,D0            * subtract the bet amount
+000031E0  31C0 4002                217              MOVE.W  D0,$4002            * save the reduced plasma value
+000031E4  6100 033E                218              BSR     CLEAR_SCREEN        * clear screen for the result
+000031E8  43F9 000040F3            219              LEA     BETPLACE_MSG,A1     * print the bet confirmation message
+000031EE  103C 000E                220              MOVE.B  #14,D0
+000031F2  4E4F                     221              TRAP    #15
+000031F4  3238 400A                222              MOVE.W  $400A,D1            * load bet amount into D1 for printing
+000031F8  103C 0003                223              MOVE.B  #3,D0              * trap 3 prints an integer
+000031FC  4E4F                     224              TRAP    #15
+000031FE  6100 02E2                225              BSR     RANDOM              * generate a random number 0 to 255
+00003202  B07C 0080                226              CMP.W   #128,D0             * 128 or above is a win, below is a loss
+00003206  6C00 001A                227              BGE     BWIN
+0000320A                           228  
+0000320A                           229  * --- loss path ---
+0000320A  3038 400E                230              MOVE.W  $400E,D0            * load loss counter
+0000320E  5240                     231              ADD.W   #1,D0              * increment by one
+00003210  31C0 400E                232              MOVE.W  D0,$400E            * save updated loss counter
+00003214  43F9 00004170            233              LEA     LOST_MSG,A1         * print the loss message
+0000321A  103C 000E                234              MOVE.B  #14,D0
+0000321E  4E4F                     235              TRAP    #15
+00003220  4E75                     236              RTS
+00003222                           237  
+00003222                           238  * --- win path ---
+00003222  3038 400A                239  BWIN:       MOVE.W  $400A,D0            * load the original bet amount
+00003226  C0FC 0002                240              MULU    #2,D0              * multiply by 2 to get the payout
+0000322A  3238 4002                241              MOVE.W  $4002,D1            * load current plasma into D1
+0000322E  D240                     242              ADD.W   D0,D1              * add the winnings to current plasma
+00003230  6100 0296                243              BSR     CAP                 * clamp plasma to 100 max
+00003234  31C1 4002                244              MOVE.W  D1,$4002            * save updated plasma
+00003238  3038 400C                245              MOVE.W  $400C,D0            * load win counter
+0000323C  5240                     246              ADD.W   #1,D0              * increment by one
+0000323E  31C0 400C                247              MOVE.W  D0,$400C            * save updated win counter
+00003242  43F9 00004144            248              LEA     WIN_MSG,A1          * print the win message
+00003248  103C 000E                249              MOVE.B  #14,D0
+0000324C  4E4F                     250              TRAP    #15
+0000324E  4E75                     251              RTS
+00003250                           252  
+00003250                           253  * --- not enough plasma to place the chosen bet ---
+00003250  43F9 0000411E            254  NOBETS:     LEA     NOBETS_MSG,A1       * print the insufficient plasma message
+00003256  103C 000E                255              MOVE.B  #14,D0
+0000325A  4E4F                     256              TRAP    #15
+0000325C  4E75                     257              RTS
+0000325E                           258  
+0000325E                           259  *-----------------------------------------------------------
+0000325E                           260  * GAMEPLAY - rolls a random event each turn and applies daily resource decay
+0000325E                           261  * picks one of three events based on a random number mod 3
+0000325E                           262  * decay and day increment happen at the end regardless of which event fired
+0000325E                           263  *-----------------------------------------------------------
+0000325E  43F9 00004258            264  GAMEPLAY:   LEA     EV_HEADER,A1        * print the event section header
+00003264  103C 000E                265              MOVE.B  #14,D0
+00003268  4E4F                     266              TRAP    #15
+0000326A  6100 0276                267              BSR     RANDOM              * generate a random number 0 to 255
+0000326E  80FC 0003                268              DIVU    #3,D0              * divide by 3, we need the remainder to select the event
+00003272  4840                     269              SWAP    D0                  * after swap the remainder is in the lower word
+00003274  C07C 000F                270              AND.W   #$000F,D0           * mask to lower nibble to isolate the remainder cleanly
+00003278  B07C 0000                271              CMP     #0,D0
+0000327C  6700 000E                272              BEQ     EV0                 * remainder 0 = void rift
+00003280  B07C 0001                273              CMP     #1,D0
+00003284  6700 0026                274              BEQ     EV1                 * remainder 1 = particle surge
+00003288  6000 0052                275              BRA     EV2                 * remainder 2 = radiation burst
+0000328C                           276  
+0000328C                           277  * --- event 0: void rift, dark matter is reduced ---
+0000328C  43F9 0000427B            278  EV0:        LEA     EV0_MSG,A1
+00003292  103C 000E                279              MOVE.B  #14,D0
+00003296  4E4F                     280              TRAP    #15
+00003298  3038 4004                281              MOVE.W  $4004,D0            * load dark matter
+0000329C  0440 0014                282              SUB.W   #20,D0              * reduce by 20
+000032A0  6100 0226                283              BSR     CAP                 * clamp so it does not go below 0
+000032A4  31C0 4004                284              MOVE.W  D0,$4004            * save updated dark matter
+000032A8  6000 004E                285              BRA     DECAY
+000032AC                           286  
+000032AC                           287  * --- event 1: particle surge, both plasma and dark matter increase ---
+000032AC  43F9 000042AE            288  EV1:        LEA     EV1_MSG,A1
+000032B2  103C 000E                289              MOVE.B  #14,D0
+000032B6  4E4F                     290              TRAP    #15
+000032B8  3038 4002                291              MOVE.W  $4002,D0            * load plasma
+000032BC  0640 0014                292              ADD.W   #20,D0              * add 20 plasma
+000032C0  6100 0206                293              BSR     CAP
+000032C4  31C0 4002                294              MOVE.W  D0,$4002            * save updated plasma
+000032C8  3038 4004                295              MOVE.W  $4004,D0            * load dark matter
+000032CC  0640 0014                296              ADD.W   #20,D0              * add 20 dark matter
+000032D0  6100 01F6                297              BSR     CAP
+000032D4  31C0 4004                298              MOVE.W  D0,$4004            * save updated dark matter
+000032D8  6000 001E                299              BRA     DECAY
+000032DC                           300  
+000032DC                           301  * --- event 2: radiation burst, shields are reduced ---
+000032DC  43F9 000042E3            302  EV2:        LEA     EV2_MSG,A1
+000032E2  103C 000E                303              MOVE.B  #14,D0
+000032E6  4E4F                     304              TRAP    #15
+000032E8  3038 4000                305              MOVE.W  $4000,D0            * load shields
+000032EC  0440 0019                306              SUB.W   #25,D0              * reduce by 25
+000032F0  6100 01D6                307              BSR     CAP
+000032F4  31C0 4000                308              MOVE.W  D0,$4000            * save updated shields
+000032F8                           309  
+000032F8                           310  * --- daily decay applied after every event ---
+000032F8  43F9 0000431A            311  DECAY:      LEA     DECAY_MSG,A1        * print the end of day message
+000032FE  103C 000E                312              MOVE.B  #14,D0
+00003302  4E4F                     313              TRAP    #15
+00003304  3038 4002                314              MOVE.W  $4002,D0            * load plasma
+00003308  5140                     315              SUB.W   #8,D0              * subtract daily upkeep cost
+0000330A  6100 01BC                316              BSR     CAP
+0000330E  31C0 4002                317              MOVE.W  D0,$4002            * save updated plasma
+00003312  3038 4004                318              MOVE.W  $4004,D0            * load dark matter
+00003316  5140                     319              SUB.W   #8,D0              * subtract daily upkeep cost
+00003318  6100 01AE                320              BSR     CAP
+0000331C  31C0 4004                321              MOVE.W  D0,$4004            * save updated dark matter
+00003320  3038 4006                322              MOVE.W  $4006,D0            * load the day counter
+00003324  5240                     323              ADD.W   #1,D0              * increment by one
+00003326  31C0 4006                324              MOVE.W  D0,$4006            * save updated day counter
+0000332A  4E75                     325              RTS
+0000332C                           326  
+0000332C                           327  *-----------------------------------------------------------
+0000332C                           328  * HUD - prints all current resource and counter values
+0000332C                           329  * skips the gamble stats section if the player has not gambled yet
+0000332C                           330  *-----------------------------------------------------------
+0000332C  43F9 0000434C            331  HUD:        LEA     HUD_MSG,A1          * print the hud header
+00003332  103C 000E                332              MOVE.B  #14,D0
+00003336  4E4F                     333              TRAP    #15
+00003338  43F9 0000436D            334              LEA     DAY_MSG,A1          * print day label
+0000333E  103C 000E                335              MOVE.B  #14,D0
+00003342  4E4F                     336              TRAP    #15
+00003344  3238 4006                337              MOVE.W  $4006,D1            * load the current day number
+00003348  103C 0003                338              MOVE.B  #3,D0              * trap 3 prints an integer
+0000334C  4E4F                     339              TRAP    #15
+0000334E  43F9 00003532            340              LEA     CRLF,A1
+00003354  103C 000E                341              MOVE.B  #14,D0
+00003358  4E4F                     342              TRAP    #15
+0000335A  43F9 00004380            343              LEA     SHD_MSG,A1          * print shields label
+00003360  103C 000E                344              MOVE.B  #14,D0
+00003364  4E4F                     345              TRAP    #15
+00003366  3238 4000                346              MOVE.W  $4000,D1            * load shields value
+0000336A  103C 0003                347              MOVE.B  #3,D0
+0000336E  4E4F                     348              TRAP    #15
+00003370  43F9 00003532            349              LEA     CRLF,A1
+00003376  103C 000E                350              MOVE.B  #14,D0
+0000337A  4E4F                     351              TRAP    #15
+0000337C  43F9 0000438A            352              LEA     PLA_MSG,A1          * print plasma label
+00003382  103C 000E                353              MOVE.B  #14,D0
+00003386  4E4F                     354              TRAP    #15
+00003388  3238 4002                355              MOVE.W  $4002,D1            * load plasma value
+0000338C  103C 0003                356              MOVE.B  #3,D0
+00003390  4E4F                     357              TRAP    #15
+00003392  43F9 00003532            358              LEA     CRLF,A1
+00003398  103C 000E                359              MOVE.B  #14,D0
+0000339C  4E4F                     360              TRAP    #15
+0000339E  43F9 0000439D            361              LEA     DM_MSG,A1           * print dark matter label
+000033A4  103C 000E                362              MOVE.B  #14,D0
+000033A8  4E4F                     363              TRAP    #15
+000033AA  3238 4004                364              MOVE.W  $4004,D1            * load dark matter value
+000033AE  103C 0003                365              MOVE.B  #3,D0
+000033B2  4E4F                     366              TRAP    #15
+000033B4  43F9 00003532            367              LEA     CRLF,A1
+000033BA  103C 000E                368              MOVE.B  #14,D0
+000033BE  4E4F                     369              TRAP    #15
+000033C0  3038 400C                370              MOVE.W  $400C,D0            * load wins
+000033C4  D078 400E                371              ADD.W   $400E,D0            * add losses to check if any bets have been placed
+000033C8  B07C 0000                372              CMP     #0,D0               * if total is zero the player has not gambled yet
+000033CC  6700 0046                373              BEQ     HUDEND              * skip the gamble stats
+000033D0  43F9 000043B0            374              LEA     WIN_HDR,A1          * print wins label
+000033D6  103C 000E                375              MOVE.B  #14,D0
+000033DA  4E4F                     376              TRAP    #15
+000033DC  3238 400C                377              MOVE.W  $400C,D1            * load win count
+000033E0  103C 0003                378              MOVE.B  #3,D0
+000033E4  4E4F                     379              TRAP    #15
+000033E6  43F9 00003532            380              LEA     CRLF,A1
+000033EC  103C 000E                381              MOVE.B  #14,D0
+000033F0  4E4F                     382              TRAP    #15
+000033F2  43F9 000043C3            383              LEA     LOS_HDR,A1          * print losses label
+000033F8  103C 000E                384              MOVE.B  #14,D0
+000033FC  4E4F                     385              TRAP    #15
+000033FE  3238 400E                386              MOVE.W  $400E,D1            * load loss count
+00003402  103C 0003                387              MOVE.B  #3,D0
+00003406  4E4F                     388              TRAP    #15
+00003408  43F9 00003532            389              LEA     CRLF,A1
+0000340E  103C 000E                390              MOVE.B  #14,D0
+00003412  4E4F                     391              TRAP    #15
+00003414  4E75                     392  HUDEND:     RTS
+00003416                           393  
+00003416                           394  *-----------------------------------------------------------
+00003416                           395  * COLLISION - 50/50 shield damage check used by exp1 and exp3
+00003416                           396  * a random number below 128 means the shockwave connects for 25 damage
+00003416                           397  * 128 or above means the impact was avoided
+00003416                           398  *-----------------------------------------------------------
+00003416  6100 00CA                399  COLLISION:  BSR     RANDOM              * generate a random number 0 to 255
+0000341A  B07C 0080                400              CMP.W   #128,D0             * check if it falls in the safe range
+0000341E  6C00 0020                401              BGE     CMISS               * 128 or above, no damage taken
+00003422  43F9 000041F2            402              LEA     HIT_MSG,A1          * print the shockwave hit message
+00003428  103C 000E                403              MOVE.B  #14,D0
+0000342C  4E4F                     404              TRAP    #15
+0000342E  3038 4000                405              MOVE.W  $4000,D0            * load shields
+00003432  0440 0019                406              SUB.W   #25,D0              * apply 25 damage
+00003436  6100 0090                407              BSR     CAP                 * clamp so shields do not go below 0
+0000343A  31C0 4000                408              MOVE.W  D0,$4000            * save updated shields
+0000343E  4E75                     409              RTS
+00003440  43F9 00004228            410  CMISS:      LEA     MISS_MSG,A1         * print the avoided hit message
+00003446  103C 000E                411              MOVE.B  #14,D0
+0000344A  4E4F                     412              TRAP    #15
+0000344C  4E75                     413              RTS
+0000344E                           414  
+0000344E                           415  *-----------------------------------------------------------
+0000344E                           416  * CHECKDEAD - checks all three resources for zero
+0000344E                           417  * if any resource is at or below zero the game ends
+0000344E                           418  *-----------------------------------------------------------
+0000344E  3038 4000                419  CHECKDEAD:  MOVE.W  $4000,D0            * load shields
+00003452  B07C 0000                420              CMP     #0,D0
+00003456  6F00 001C                421              BLE     GAMEOVER            * shields at zero, game over
+0000345A  3038 4002                422              MOVE.W  $4002,D0            * load plasma
+0000345E  B07C 0000                423              CMP     #0,D0
+00003462  6F00 0010                424              BLE     GAMEOVER            * plasma at zero, game over
+00003466  3038 4004                425              MOVE.W  $4004,D0            * load dark matter
+0000346A  B07C 0000                426              CMP     #0,D0
+0000346E  6F00 0004                427              BLE     GAMEOVER            * dark matter at zero, game over
+00003472  4E75                     428              RTS                         * all resources above zero, continue
+00003474                           429  
+00003474                           430  *-----------------------------------------------------------
+00003474                           431  * GAMEOVER - displays the end screen and halts the simulation
+00003474                           432  * shows the scientist portrait, a failure message, and the final day count
+00003474                           433  *-----------------------------------------------------------
+00003474  6100 00AE                434  GAMEOVER:   BSR     CLEAR_SCREEN        * clear screen for the game over display
+00003478  43F9 0000377A            435              LEA     SCIENTIST_ART,A1    * print the scientist portrait
+0000347E  103C 000E                436              MOVE.B  #14,D0
+00003482  4E4F                     437              TRAP    #15
+00003484  43F9 000043D6            438              LEA     DEAD_MSG,A1         * print the game over banner
+0000348A  103C 000E                439              MOVE.B  #14,D0
+0000348E  4E4F                     440              TRAP    #15
+00003490  43F9 000044A2            441              LEA     SCORE_MSG,A1        * print the final score label
+00003496  103C 000E                442              MOVE.B  #14,D0
+0000349A  4E4F                     443              TRAP    #15
+0000349C  3238 4006                444              MOVE.W  $4006,D1            * load the final day count
+000034A0  103C 0003                445              MOVE.B  #3,D0              * print it as an integer
+000034A4  4E4F                     446              TRAP    #15
+000034A6  FFFF FFFF                447              SIMHALT                     * halt the simulation
+000034AA                           448  
+000034AA                           449  *-----------------------------------------------------------
+000034AA                           450  * REPLAY - end of turn prompt asking the player to continue or quit
+000034AA                           451  * entering 0 exits to END, anything else restarts the game loop
+000034AA                           452  * uses BRA instead of BSR to avoid growing the call stack each turn
+000034AA                           453  *-----------------------------------------------------------
+000034AA  43F9 000044C5            454  REPLAY:     LEA     REPLAY_MSG,A1       * print the replay prompt
+000034B0  103C 000E                455              MOVE.B  #14,D0
+000034B4  4E4F                     456              TRAP    #15
+000034B6  103C 0004                457              MOVE.B  #4,D0              * read player input
+000034BA  4E4F                     458              TRAP    #15
+000034BC  B27C 0000                459              CMP     #EXIT,D1            * check if the player entered 0
+000034C0  6700 FB3E                460              BEQ     END                 * if so, jump to END and halt
+000034C4  6000 FB5C                461              BRA     GAMELOOP            * otherwise restart the game loop
+000034C8                           462  
+000034C8                           463  *-----------------------------------------------------------
+000034C8                           464  * CAP - clamps the value in D0 to the range 0 to 100
+000034C8                           465  * call this before saving any resource value back to memory
+000034C8                           466  *-----------------------------------------------------------
+000034C8  B07C 0064                467  CAP:        CMP     #100,D0             * check if value exceeds the maximum
+000034CC  6F00 0006                468              BLE     CAPLO               * within range, check the lower bound
+000034D0  303C 0064                469              MOVE.W  #100,D0             * value too high, force it to 100
+000034D4  B07C 0000                470  CAPLO:      CMP     #0,D0               * check if value is below zero
+000034D8  6C00 0006                471              BGE     CAPOK               * value is fine, return
+000034DC  303C 0000                472              MOVE.W  #0,D0              * value too low, force it to 0
+000034E0  4E75                     473  CAPOK:      RTS
+000034E2                           474  
+000034E2                           475  *-----------------------------------------------------------
+000034E2                           476  * RANDOM - linear congruential generator
+000034E2                           477  * formula: seed = (seed * 75 + 74) AND 255
+000034E2                           478  * returns a value between 0 and 255 in D0
+000034E2                           479  * CLR.L clears the full 32 bit register before loading the seed
+000034E2                           480  * skipping this causes leftover bits in the upper word to corrupt the multiply result
+000034E2                           481  *-----------------------------------------------------------
+000034E2  4280                     482  RANDOM:     CLR.L   D0                  * clear the full 32 bit register, not just the lower word
+000034E4  3038 4008                483              MOVE.W  $4008,D0            * load the current seed
+000034E8  C0FC 004B                484              MULU    #75,D0              * multiply by the lcg multiplier
+000034EC  0640 004A                485              ADD.W   #74,D0              * add the lcg increment
+000034F0  C07C 00FF                486              AND.W   #$00FF,D0           * mask to 8 bits, keeping the result in range 0 to 255
+000034F4  31C0 4008                487              MOVE.W  D0,$4008            * save the new seed for next time
+000034F8  4E75                     488              RTS
+000034FA                           489  
+000034FA                           490  *-----------------------------------------------------------
+000034FA                           491  * CONTINUE - prints a prompt and blocks until the player presses a key
+000034FA                           492  * placed after every major screen so the player has time to read it
+000034FA                           493  *-----------------------------------------------------------
+000034FA                           494  CONTINUE:
+000034FA  43F9 00003535            495              LEA     CONTINUE_MSG,A1     * load the continue prompt
+00003500  103C 000E                496              MOVE.B  #14,D0
+00003504  4E4F                     497              TRAP    #15
+00003506  103C 0004                498              MOVE.B  #4,D0              * trap 4 blocks here until the player enters something
+0000350A  4E4F                     499              TRAP    #15
+0000350C  4E75                     500              RTS
+0000350E                           501  
+0000350E                           502  *-----------------------------------------------------------
+0000350E                           503  * ENDL - prints a newline
+0000350E                           504  * saves and restores D0 and A1 so it does not interfere with the caller
+0000350E                           505  *-----------------------------------------------------------
+0000350E                           506  ENDL:
+0000350E  48E7 8040                507              MOVEM.L D0/A1,-(A7)         * push D0 and A1 onto the stack
+00003512  303C 000E                508              MOVE    #14,D0              * trap 14 prints a string
+00003516  43F9 00003532            509              LEA     CRLF,A1             * point A1 at the newline bytes
+0000351C  4E4F                     510              TRAP    #15
+0000351E  4CDF 0201                511              MOVEM.L (A7)+,D0/A1         * restore D0 and A1 from the stack
+00003522  4E75                     512              RTS
+00003524                           513  
+00003524                           514  *-----------------------------------------------------------
+00003524                           515  * CLEAR_SCREEN - clears the easy68k output window
+00003524                           516  *-----------------------------------------------------------
+00003524                           517  CLEAR_SCREEN:
+00003524  103C 000B                518              MOVE.B  #11,D0              * trap 11 is the display control trap
+00003528  323C FF00                519              MOVE.W  #$FF00,D1           * $FF00 is the command code to clear the screen
+0000352C  4E4F                     520              TRAP    #15
+0000352E  4E75                     521              RTS
+00003530                           522  
+00003530                           523  *===========================================================
+00003530                           524  * data section - all strings and ascii art
+00003530                           525  *===========================================================
+00003530                           526  MCHOICE     DS.W    1                   * one word of storage for the player menu choice
+00003532= 0D 0A 00                 527  CRLF        DC.B    $0D,$0A,0           * carriage return and line feed followed by null terminator
+00003535                           528  
+00003535= 0D 0A 5B 20 70 72 ...    529  CONTINUE_MSG DC.B   $0D,$0A,'[ press any key, Dr. Quantum is waiting... ]',0
+00003564                           530  
+00003564                           531  * --- title screen art ---
+00003564                           532  WELCOME_ART:
+00003564= 0D 0A                    533              DC.B    $0D,$0A
+00003566= 20 2B 3D 3D 3D 3D ...    534              DC.B    ' +================================================+',$0D,$0A
+0000359B= 20 7C 7C 20 20 20 ...    535              DC.B    ' ||                                              ||',$0D,$0A
+000035D0= 20 7C 7C 20 20 20 ...    536              DC.B    ' ||    QUANTUM QUEST: PHYSICS LAB SURVIVAL       ||',$0D,$0A
+00003605= 20 7C 7C 20 20 20 ...    537              DC.B    ' ||    "What could possibly go wrong?"           ||',$0D,$0A
+0000363A= 20 7C 7C 20 20 20 ...    538              DC.B    ' ||                                              ||',$0D,$0A
+0000366F= 20 7C 7C 20 20 3E ...    539              DC.B    ' ||  >>--[o]--[*]--[CORE]--[*]--[o]-->>         ||',$0D,$0A
+000036A3= 20 7C 7C 20 20 4D ...    540              DC.B    ' ||  Manage Plasma, Dark Matter.                 ||',$0D,$0A
+000036D8= 20 7C 7C 20 20 52 ...    541              DC.B    ' ||  Run experiments. Try not to explode.        ||',$0D,$0A
+0000370D= 20 7C 7C 20 20 4F ...    542              DC.B    ' ||  Option 3: gamble! Ethics board not watching.||',$0D,$0A
+00003742= 20 2B 3D 3D 3D 3D ...    543              DC.B    ' +================================================+',$0D,$0A
+00003777= 0D 0A 00                 544              DC.B    $0D,$0A,0
+0000377A                           545  
+0000377A                           546  * --- scientist portrait, shown on title screen and game over screen ---
+0000377A                           547  SCIENTIST_ART:
+0000377A= 0D 0A                    548              DC.B    $0D,$0A
+0000377C= 20 20 20 20 20 20 ...    549              DC.B    '         _____                                    ',$0D,$0A
+000037B0= 20 20 20 20 20 20 ...    550              DC.B    '        /     \    DR. QUANTUM                    ',$0D,$0A
+000037E4= 20 20 20 20 20 20 ...    551              DC.B    '       | o   o |   "I have a PhD for this."       ',$0D,$0A
+00003818= 20 20 20 20 20 20 ...    552              DC.B    '       |   ^   |   Speciality: Not dying          ',$0D,$0A
+0000384C= 20 20 20 20 20 20 ...    553              DC.B    '        \ \_/ /                                   ',$0D,$0A
+00003880= 20 20 20 20 20 20 ...    554              DC.B    '      ---|   |---  ___                            ',$0D,$0A
+000038B4= 20 20 20 20 20 2F ...    555              DC.B    '     /  _|   |_  \|+-+|  <- grant application    ',$0D,$0A
+000038E7= 20 20 20 20 2F 20 ...    556              DC.B    '    /  / |   | \  |+-+|       (mostly denied)    ',$0D,$0A
+0000391A= 20 20 20 20 20 20 ...    557              DC.B    '          |   |        "If the shield hits 0      ',$0D,$0A
+0000394E= 20 20 20 20 20 20 ...    558              DC.B    '         /|   |\        thats on YOU."            ',$0D,$0A
+00003982= 0D 0A 00                 559              DC.B    $0D,$0A,0
+00003985                           560  
+00003985                           561  * --- action selection menu ---
+00003985                           562  MENU_MSG:
+00003985= 0D 0A                    563              DC.B    $0D,$0A
+00003987= 20 2D 2D 2D 2D 20 ...    564              DC.B    ' ---- WHAT DOES DR. QUANTUM DO TODAY? ------------',$0D,$0A
+000039BB= 20 31 2E 20 43 4F ...    565              DC.B    ' 1. COLLIDER RUN   +20pla +15dm   (risky)        ',$0D,$0A
+000039EE= 20 32 2E 20 44 4D ...    566              DC.B    ' 2. DM RAID        +30dm  +20pla  (good luck o7) ',$0D,$0A
+00003A21= 20 33 2E 20 51 55 ...    567              DC.B    ' 3. QUANTUM GAMBLE the ethics board wont find out ',$0D,$0A
+00003A55= 20 2D 2D 2D 2D 2D ...    568              DC.B    ' -------------------------------------------------',$0D,$0A
+00003A89= 0D 0A 00                 569              DC.B    $0D,$0A,0
+00003A8C                           570  
+00003A8C= 59 6F 75 72 20 63 ...    571  PROMPT_MSG   DC.B   'Your call, doc (1-3): ',0
+00003AA3= 44 72 2E 20 51 75 ...    572  BADINPUT_MSG DC.B   'Dr. Quantum stares blankly cuh. Try 1-3.',$0D,$0A,0
+00003ACE                           573  
+00003ACE                           574  * --- collider run art ---
+00003ACE                           575  ART1:
+00003ACE= 0D 0A                    576              DC.B    $0D,$0A
+00003AD0= 20 2B 3D 3D 3D 3D ...    577              DC.B    ' +==========================================+',$0D,$0A
+00003AFF= 20 7C 20 20 20 6F ...    578              DC.B    ' |   o       o       o       o       o     |',$0D,$0A
+00003B2D= 20 7C 20 3E 3E 2D ...    579              DC.B    ' | >>--[o]--[o]-->>[CORE]<<--[o]--[o]--<< |',$0D,$0A
+00003B5A= 20 7C 20 20 20 20 ...    580              DC.B    ' |       PARTICLE   COLLIDER   RUN         |',$0D,$0A
+00003B88= 20 7C 20 3C 3C 2D ...    581              DC.B    ' | <<--[o]--[o]-->>[CORE]<<--[o]--[o]-->> |',$0D,$0A
+00003BB5= 20 7C 20 20 20 6F ...    582              DC.B    ' |   o       o       o       o       o     |',$0D,$0A
+00003BE3= 20 2B 3D 3D 3D 3D ...    583              DC.B    ' +==========================================+',$0D,$0A
+00003C12= 0D 0A 00                 584              DC.B    $0D,$0A,0
+00003C15                           585  
+00003C15                           586  * --- dark matter raid art ---
+00003C15                           587  ART3:
+00003C15= 0D 0A                    588              DC.B    $0D,$0A
+00003C17= 20 2A 20 20 2E 20 ...    589              DC.B    ' *  .  *  .  *  .  *  .  *  .  *  .  *',$0D,$0A
+00003C3F= 20 2E 20 20 20 20 ...    590              DC.B    ' .    ((  D A R K   V O I D   R A I D  ))',$0D,$0A
+00003C6A= 20 2A 20 20 20 2E ...    591              DC.B    ' *   . /==============================\ . *',$0D,$0A
+00003C97= 20 2E 20 20 20 20 ...    592              DC.B    ' .    | #  #  #  #  #  #  #  #  #  # |   .',$0D,$0A
+00003CC3= 20 2A 20 20 20 2E ...    593              DC.B    ' *   . \==============================/ . *',$0D,$0A
+00003CF0= 20 2E 20 20 2A 20 ...    594              DC.B    ' .  *  .  *  .  *  .  *  .  *  .  *  .',$0D,$0A
+00003D18= 0D 0A 00                 595              DC.B    $0D,$0A,0
+00003D1B                           596  
+00003D1B                           597  * --- gamble art ---
+00003D1B                           598  ART5:
+00003D1B= 0D 0A                    599              DC.B    $0D,$0A
+00003D1D= 20 20 20 20 20 20 ...    600              DC.B    '      ___________________________________        ',$0D,$0A
+00003D50= 20 20 20 20 20 2F ...    601              DC.B    '     /                                   |  <>  <>',$0D,$0A
+00003D84= 20 20 20 20 7C 20 ...    602              DC.B    '    |   \O/  -  -  -  -  -  -  -  - ->X |<><><><>',$0D,$0A
+00003DB7= 20 20 20 20 7C 20 ...    603              DC.B    '    |    |>      still digging!!!        X| <><><>',$0D,$0A
+00003DEB= 20 20 20 20 7C 20 ...    604              DC.B    '    |   / \  -  -  -  -  -  -  -  - ->X |<><><><>',$0D,$0A
+00003E1E= 20 20 20 20 20 5C ...    605              DC.B    '     \___________________________________|  <>  <>',$0D,$0A
+00003E52= 20 20 20 20 20 20 ...    606              DC.B    '      ___________________________________ DIAMONDS',$0D,$0A
+00003E86= 20 20 20 20 20 2F ...    607              DC.B    '     /                                   |<><><><>',$0D,$0A
+00003EBA= 20 20 20 20 7C 20 ...    608              DC.B    '    |  <- <- <- <- <- <-   o/            | <><><>',$0D,$0A
+00003EED= 20 20 20 20 7C 20 ...    609              DC.B    '    |    walked away :(     |>            |<><><><>',$0D,$0A
+00003F22= 20 20 20 20 7C 20 ...    610              DC.B    '    |  <- <- <- <- <- <-   / \            | <><><>',$0D,$0A
+00003F56= 20 20 20 20 20 5C ...    611              DC.B    '     \_____________________________________|<><><>',$0D,$0A
+00003F8A= 20 20 20 39 39 25 ...    612              DC.B    '   99% of gamblers quit before the Max winnn....    ',$0D,$0A
+00003FC0= 0D 0A 00                 613              DC.B    $0D,$0A,0
+00003FC3                           614  
+00003FC3                           615  * --- gamble menu and result strings ---
+00003FC3                           616  BET_MSG:
+00003FC3= 20 2D 2D 2D 2D 20 ...    617              DC.B    ' ---- TOTALLY LEGITIMATE SCIENCE TRIP FUNDING ---------',$0D,$0A
+00003FFC= 20 31 2E 20 4C 4F ...    618              DC.B    ' 1. LOW BET    10 plasma  (respectable)           ',$0D,$0A
+00004030= 20 32 2E 20 4D 45 ...    619              DC.B    ' 2. MEDIUM BET 25 plasma  (bold move)             ',$0D,$0A
+00004064= 20 33 2E 20 48 49 ...    620              DC.B    ' 3. HIGH BET   50 plasma  (insurance not covered) ',$0D,$0A
+00004098= 20 2D 2D 2D 2D 2D ...    621              DC.B    ' -------------------------------------------------',$0D,$0A
+000040CC= 0D 0A 00                 622              DC.B    $0D,$0A,0
+000040CF                           623  
+000040CF= 50 6C 61 63 65 20 ...    624  BETPROMPT    DC.B   'Place your "scientific" bet (1-3): ',0
+000040F3= 44 72 2E 20 51 20 ...    625  BETPLACE_MSG DC.B   'Dr. Q slides the plasma across the table: ',0
+0000411E= 4E 6F 74 20 65 6E ...    626  NOBETS_MSG   DC.B   'Not enough plasma! start a onlyfans',$0D,$0A,0
+00004144= 0D 0A 2A 2A 20 57 ...    627  WIN_MSG      DC.B   $0D,$0A,'** WINNER! Dr. Q respects the gamble **',$0D,$0A,0
+00004170= 0D 0A 2A 2A 20 4C ...    628  LOST_MSG     DC.B   $0D,$0A,'** LOST. Dr. Q side eyes . **',$0D,$0A,0
+00004192                           629  
+00004192                           630  * --- experiment result messages ---
+00004192= 43 6F 6C 6C 69 64 ...    631  M1_RES      DC.B   'Collider fired! Particles are GOING FOR IT.',$0D,$0A,0
+000041C0= 44 61 72 6B 20 6D ...    632  M3_RES      DC.B   'Dark matter extracted. Smells like burnt toast.',$0D,$0A,0
+000041F2                           633  
+000041F2                           634  * --- collision result messages ---
+000041F2= 0D 0A 2A 2A 20 53 ...    635  HIT_MSG     DC.B   $0D,$0A,'** SHOCKWAVE! Dr. Q was NOT ready. -25 shields **',$0D,$0A,0
+00004228= 2A 2A 20 43 6F 6E ...    636  MISS_MSG    DC.B   '** Contained! Dr. Q: "I meant to do that." **',$0D,$0A,0
+00004258                           637  
+00004258                           638  * --- random event messages ---
+00004258= 0D 0A 3D 3D 3D 20 ...    639  EV_HEADER   DC.B   $0D,$0A,'=== SOMETHING IS HAPPENING ===',$0D,$0A,0
+0000427B= 2A 2A 20 56 6F 69 ...    640  EV0_MSG     DC.B   '** Void rift! Dark matter just LEFT.   -20 dm **',$0D,$0A,0
+000042AE= 2A 2A 20 50 61 72 ...    641  EV1_MSG     DC.B   '** Particle surge! Lab is humming. +20pla +20dm **',$0D,$0A,0
+000042E3= 2A 2A 20 52 61 64 ...    642  EV2_MSG     DC.B   '** Radiation burst! Dr. Q dives for cover. -25shd **',$0D,$0A,0
+0000431A= 45 6E 64 20 6F 66 ...    643  DECAY_MSG   DC.B   'End of day: resources used. Dr. Q skips dinner.',$0D,$0A,0
+0000434C                           644  
+0000434C                           645  * --- hud label strings ---
+0000434C= 0D 0A 3D 3D 3D 20 ...    646  HUD_MSG     DC.B   $0D,$0A,'=== DR. QUANTUM CHECK-IN ===',$0D,$0A,0
+0000436D= 45 58 50 45 52 49 ...    647  DAY_MSG     DC.B   'EXPERIMENT DAY  : ',0
+00004380= 53 48 49 45 4C 44 ...    648  SHD_MSG     DC.B   'SHIELDS: ',0
+0000438A= 50 4C 41 53 4D 41 ...    649  PLA_MSG     DC.B   'PLASMA          : ',0
+0000439D= 44 41 52 4B 20 4D ...    650  DM_MSG      DC.B   'DARK MATTER     : ',0
+000043B0= 43 41 53 49 4E 4F ...    651  WIN_HDR     DC.B   'CASINO WINS     : ',0
+000043C3= 43 41 53 49 4E 4F ...    652  LOS_HDR     DC.B   'CASINO LOSSES   : ',0
+000043D6                           653  
+000043D6                           654  * --- game over screen ---
+000043D6                           655  DEAD_MSG:
+000043D6= 0D 0A                    656              DC.B    $0D,$0A
+000043D8= 20 2B 3D 3D 3D 3D ...    657              DC.B    ' +=============================================+',$0D,$0A
+0000440A= 20 7C 7C 20 4C 41 ...    658              DC.B    ' || LAB DESTROYED. Dr. Q is fine. Probably.  ||',$0D,$0A
+0000443B= 20 7C 7C 20 45 74 ...    659              DC.B    ' || Ethics board is NOT fine with this.       ||',$0D,$0A
+0000446D= 20 2B 3D 3D 3D 3D ...    660              DC.B    ' +=============================================+',$0D,$0A
+0000449F= 0D 0A 00                 661              DC.B    $0D,$0A,0
+000044A2                           662  
+000044A2= 44 61 79 73 20 73 ...    663  SCORE_MSG   DC.B   'Days survived before catastrophe: ',0
+000044C5= 0D 0A 30 20 3D 20 ...    664  REPLAY_MSG  DC.B   $0D,$0A,'0 = quit and reflect. Anything else = retry: ',0
+000044F5                           665  
+000044F5                           666              END    START               * entry point is START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ART1                3ACE
+ART3                3C15
+ART5                3D1B
+BADINP              308E
+BADINPUT_MSG        3AA3
+BETHI               31BE
+BETLO               3186
+BETLOOP             314E
+BETMD               31A2
+BETPLACE            31D8
+BETPLACE_MSG        40F3
+BETPROMPT           40CF
+BET_HIGH            32
+BET_LOW             A
+BET_MED             19
+BET_MSG             3FC3
+BHI_OK              31D2
+BLO_OK              3198
+BMD_OK              31B4
+BWIN                3222
+CAP                 34C8
+CAPLO               34D4
+CAPOK               34E0
+CHECKDEAD           344E
+CLEAR_SCREEN        3524
+CMISS               3440
+COLLISION           3416
+CONTINUE            34FA
+CONTINUE_MSG        3535
+CRLF                3532
+DAY_MSG             436D
+DEAD_MSG            43D6
+DECAY               32F8
+DECAY_MSG           431A
+DM_MSG              439D
+END                 3000
+ENDL                350E
+EV0                 328C
+EV0_MSG             427B
+EV1                 32AC
+EV1_MSG             42AE
+EV2                 32DC
+EV2_MSG             42E3
+EV_HEADER           4258
+EXIT                0
+EXP1                30B6
+EXP3                30F4
+GAMBLE              3132
+GAMELOOP            3022
+GAMEOVER            3474
+GAMEPLAY            325E
+HIT_MSG             41F2
+HUD                 332C
+HUDEND              3414
+HUD_MSG             434C
+INLOOP              3064
+INPUT               3058
+LOST_MSG            4170
+LOS_HDR             43C3
+M1_RES              4192
+M3_RES              41C0
+MCHOICE             3530
+MENU_MSG            3985
+MISS_MSG            4228
+NOBETS              3250
+NOBETS_MSG          411E
+PLA_MSG             438A
+PROMPT_MSG          3A8C
+RANDOM              34E2
+REPLAY              34AA
+REPLAY_MSG          44C5
+SCIENTIST_ART       377A
+SCORE_MSG           44A2
+SHD_MSG             4380
+START               1000
+UPDATE              309C
+WELCOME             3004
+WELCOME_ART         3564
+WIN_HDR             43B0
+WIN_MSG             4144
