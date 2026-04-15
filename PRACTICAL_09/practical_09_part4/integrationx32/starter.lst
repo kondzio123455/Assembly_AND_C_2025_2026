@@ -1,0 +1,10 @@
+     1                                  global sub
+     2                                  
+     3                                  section	.data
+     4                                  section	.text
+     5                                  
+     6                                  sub:
+     7                                  
+     8 00000000 8B442404                	mov eax, [esp+4]
+     9 00000004 8B442408                	mov eax, [esp+8]
+    10 00000008 C3                      	ret
