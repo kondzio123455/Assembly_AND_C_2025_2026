@@ -1,7 +1,13 @@
+
+# file: makefile
+# author: konrad skoczylas c00309030
+# description: compilation instructions for project
+
+
 ASM=nasm
 CC=gcc
 AFLAGS=-f elf64
-CFLAGS=-no-pie -g -Wall
+CFLAGS=-no-pie -g -Wall   👍
 
 all: main test_suite
 
