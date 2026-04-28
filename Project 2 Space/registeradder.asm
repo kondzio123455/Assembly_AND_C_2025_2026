@@ -1,8 +1,8 @@
-; ==============================================================================================
+
 ; file: registeradder.asm
 ; author: konrad skoczylas c00309030
 ; description: adds two numbers and prevents integer overflow wrap-around.
-; ==============================================================================================
+
 
 section .data
     err_overflow    db  "Error: Overflow clamped.", 10, 0       ; text for overflow error
