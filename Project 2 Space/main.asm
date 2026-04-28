@@ -1,9 +1,9 @@
-; ============================================================
+
 ; Project:     68000 to x86_64 Assembly Conversion
 ; Author:      Konrad | C00309030 | SETU Carlow
 ; Description: 3-iteration loop keeping a running sum.
 ;              Uses scanf for input and printf for output.
-; ============================================================
+
 
 section .data
     prompt_msg      db  "Enter number: ", 0
