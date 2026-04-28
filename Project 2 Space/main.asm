@@ -1,111 +1,102 @@
 
-; Project:     68000 to x86_64 Assembly Conversion
-; Author:      Konrad | C00309030 | SETU Carlow
-; Description: 3-iteration loop keeping a running sum.
-;              Uses scanf for input and printf for output.
+; file: main.asm
+; author: konrad skoczylas c00309030
+; description: 3-iteration loop with running sum. uses scanf and printf.
 
 
 section .data
-    prompt_msg      db  "Enter number: ", 0
-    result_msg      db  "The sum is: ", 0
-    final_msg       db  "Final sum is: ", 0
-    err_invalid     db  "Error: Number too large. Try again.", 10, 0
+    prompt_msg      db  "Enter number: ", 0                     ; text to ask for input
+    result_msg      db  "The sum is: ", 0                       ; text for current loop sum
+    final_msg       db  "Final sum is: ", 0                     ; text for the final total
+    err_invalid     db  "Error: Number too large.", 10, 0       ; text for input error
     
-    fmt_out         db  "%ld", 10, 0    ; Format for printf
-    fmt_in          db  "%ld", 0        ; Format for scanf
+    fmt_out         db  "%ld", 10, 0                            ; printf format for numbers
+    fmt_in          db  "%ld", 0                                ; scanf format for numbers
     
-    INT32_MAX       equ 2147483647
+    INT32_MAX       equ 2147483647                              ; max safe 32-bit integer
 
 section .bss
-    user_input      resq 1              ; 64-bit variable to store scanf input
+    user_input      resq 1                                      ; 64-bit space for scanf input
 
 section .text
-    global main
-    extern printf, scanf
-    extern register_adder               ; Link to our math subroutine
+    global main                                                 ; make main visible to linker
+    extern printf, scanf                                        ; import c library functions
+    extern register_adder                                       ; link our math subroutine
 
-; --- Subroutine to safely get a number ---
 get_input:
-    push    rbp
-    mov     rbp, rsp
+    push    rbp                                                 ; save base pointer
+    mov     rbp, rsp                                            ; set up stack frame
 
 .retry:
-    ; 1. Print prompt
-    lea     rdi, [rel prompt_msg]
-    xor     eax, eax
-    call    printf
+    lea     rdi, [rel prompt_msg]                               ; load prompt text address
+    xor     eax, eax                                            ; clear eax for printf
+    call    printf                                              ; print the prompt
 
-    ; 2. Read number with scanf
-    lea     rdi, [rel fmt_in]           
-    lea     rsi, [rel user_input]       
-    xor     eax, eax
-    call    scanf
+    lea     rdi, [rel fmt_in]                                   ; load format string for scanf
+    lea     rsi, [rel user_input]                               ; load address to save number
+    xor     eax, eax                                            ; clear eax for scanf
+    call    scanf                                               ; read input from keyboard
 
-    ; 3. Move number to rax to return it
-    mov     rax, [rel user_input]       
+    mov     rax, [rel user_input]                               ; move input into rax to return
 
-    ; 4. Check if the initial input is already too big
-    cmp     rax, INT32_MAX      
-    jg      .invalid_input
+    cmp     rax, INT32_MAX                                      ; check if number is too big
+    jg      .invalid_input                                      ; if greater, jump to error
     
-    leave
-    ret
+    leave                                                       ; clean up stack frame
+    ret                                                         ; return to main loop
 
 .invalid_input:
-    lea     rdi, [rel err_invalid]
-    xor     eax, eax
-    call    printf
-    jmp     .retry
+    lea     rdi, [rel err_invalid]                              ; load error message address
+    xor     eax, eax                                            ; clear eax for printf
+    call    printf                                              ; print the error message
+    jmp     .retry                                              ; loop back to ask again
 
-; --- Main Program ---
 main:
-    push    rbp
-    mov     rbp, rsp
+    push    rbp                                                 ; save base pointer
+    mov     rbp, rsp                                            ; set up stack frame
     
-    xor     r14, r14            ; r14 (D3 equivalent) = Running Sum = 0
-    mov     r15, 3              ; r15 (D4 equivalent) = Loop Counter = 3
+    xor     r14, r14                                            ; r14 (d3) = running sum = 0
+    mov     r15, 3                                              ; r15 (d4) = loop counter = 3
 
 .game_loop:
-    test    r15, r15
-    jz      .display_final
+    test    r15, r15                                            ; check if counter is zero
+    jz      .display_final                                      ; if zero, exit the loop
 
-    ; Get D2 and D1
-    call    get_input
-    mov     r12, rax            ; First number
-    call    get_input
-    mov     r13, rax            ; Second number
-
-    ; Do the addition
-    mov     rdi, r12
-    mov     rsi, r13
-    call    register_adder      ; Adds parameters, handles overflow
-    mov     r12, rax            ; Put result back in r12
+    call    get_input                                           ; read the first number
+    mov     r12, rax                                            ; save it in r12 (d2)
     
-    ; Add to running sum
-    add     r14, r12            
+    call    get_input                                           ; read the second number
+    mov     r13, rax                                            ; save it in r13 (d1)
 
-    ; Print iteration sum
-    lea     rdi, [rel result_msg]
-    xor     eax, eax
-    call    printf
-    lea     rdi, [rel fmt_out]
-    mov     rsi, r12
-    xor     eax, eax
-    call    printf
+    mov     rdi, r12                                            ; pass first number to rdi
+    mov     rsi, r13                                            ; pass second number to rsi
+    call    register_adder                                      ; safely add them together
+    mov     r12, rax                                            ; put the result back in r12
+    
+    add     r14, r12                                            ; add result to running sum
 
-    dec     r15                 ; Loop counter --
-    jmp     .game_loop
+    lea     rdi, [rel result_msg]                               ; load text for sum
+    xor     eax, eax                                            ; clear eax for printf
+    call    printf                                              ; print the text
+    
+    lea     rdi, [rel fmt_out]                                  ; load format string to print
+    mov     rsi, r12                                            ; pass the current loop sum
+    xor     eax, eax                                            ; clear eax for printf
+    call    printf                                              ; print the number
+
+    dec     r15                                                 ; subtract 1 from loop counter
+    jmp     .game_loop                                          ; jump back to start of loop
 
 .display_final:
-    ; Print final sum
-    lea     rdi, [rel final_msg]
-    xor     eax, eax
-    call    printf
-    lea     rdi, [rel fmt_out]
-    mov     rsi, r14
-    xor     eax, eax
-    call    printf
+    lea     rdi, [rel final_msg]                                ; load text for final total
+    xor     eax, eax                                            ; clear eax for printf
+    call    printf                                              ; print the text
+    
+    lea     rdi, [rel fmt_out]                                  ; load format string to print
+    mov     rsi, r14                                            ; pass the grand total
+    xor     eax, eax                                            ; clear eax for printf
+    call    printf                                              ; print the final number
 
-    xor     eax, eax            ; Exit successfully
-    leave
-    ret
+    xor     eax, eax                                            ; set return code to 0
+    leave                                                       ; clean up stack frame
+    ret  
